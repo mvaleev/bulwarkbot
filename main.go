@@ -13,7 +13,7 @@ import (
 	"github.com/dchest/captcha"
 	"github.com/spf13/viper"
 	//"gopkg.in/telegram-bot-api.v4"
-	"github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/mvaleev/telegram-bot-api"
 )
 
 type (
@@ -101,7 +101,7 @@ func main() {
 						if captcha.VerifyString(strconv.FormatInt(chatID, 10), msgText) {
 							chatName := chatNameStore[strconv.Itoa(userID)]
 
-							err := restrictChatMember(bot, chatName, userID, true)
+							err := unbanChatMember(bot, chatName, userID)
 							if err != nil {
 								log.Printf("Error on restrictChatMember: %v", err)
 								text := `Ошибка. Попробуйте попозже.`
@@ -146,7 +146,7 @@ func main() {
 				chatName := update.Message.Chat.UserName
 				chatTitle := update.Message.Chat.Title
 
-				err := restrictChatMember(bot, chatName, userIDNew, false)
+				err := restrictChatMember(bot, chatName, userIDNew)
 				if err != nil {
 					log.Printf("Error on restrictChatMember: %v", err)
 				}
@@ -224,16 +224,26 @@ func checkString(str string) bool {
 	return false
 }
 
-func restrictChatMember(b *tgbotapi.BotAPI, chatName string, userID int, allRights bool) error {
+func restrictChatMember(b *tgbotapi.BotAPI, chatName string, userID int) error {
 	config := tgbotapi.RestrictChatMemberConfig{}
 	config.SuperGroupUsername = "@" + chatName
 	config.UserID = userID
-	config.CanAddWebPagePreviews = &allRights
-	config.CanSendMediaMessages = &allRights
-	config.CanSendMessages = &allRights
-	config.CanSendOtherMessages = &allRights
+	config.CanAddWebPagePreviews = false
+	config.CanSendMediaMessages = false
+	config.CanSendMessages = false
+	config.CanSendOtherMessages = false
 
 	msg, err := b.RestrictChatMember(config)
 	log.Printf("msg from api on restrictChatMember: %v", msg)
+	return err
+}
+
+func unbanChatMember(b *tgbotapi.BotAPI, chatName string, userID int) error {
+	config := tgbotapi.ChatMemberConfig{}
+	config.SuperGroupUsername = "@" + chatName
+	config.UserID = userID
+
+	msg, err := b.UnbanChatMember(config)
+	log.Printf("msg from api on unbanChatMember: %v", msg)
 	return err
 }
